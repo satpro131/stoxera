@@ -69,11 +69,11 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 font-black text-black shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-all">
-              SX
+              NA
             </div>
             <div>
               <span className="text-lg font-black tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
-                STOXERA
+                NEURAL ALPHA
               </span>
               <span className="block text-[8px] tracking-[0.25em] text-cyan-400 font-bold -mt-1 uppercase">
                 AI Advisory F&O

@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const symbol = searchParams.get('symbol')?.toUpperCase();
     const timeframe = searchParams.get('timeframe') || '1d';
     const limit = Number(searchParams.get('limit')) || 100;
+    const instrumentKey = searchParams.get('instrument_key');
 
     if (!symbol) {
       return NextResponse.json({ success: false, error: 'Symbol parameter is required' }, { status: 400 });
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
     if (token) {
       try {
         // 1. Fetch live quote
-        const upstoxQuotes = await getUpstoxQuotes([symbol]);
+        const upstoxQuotes = await getUpstoxQuotes([symbol], instrumentKey ? [instrumentKey] : undefined);
         const upstoxResponseKeys = Object.keys(UPSTOX_RESPONSE_MAP);
         const matchingKey = upstoxResponseKeys.find(
           key => UPSTOX_RESPONSE_MAP[key] === symbol
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
         }
 
         // 2. Fetch live candles
-        const upstoxCandles = await getUpstoxCandles(symbol, timeframe);
+        const upstoxCandles = await getUpstoxCandles(symbol, timeframe, instrumentKey || undefined);
         if (upstoxCandles.length > 0) {
           chart = upstoxCandles.slice(-limit); // limit size
         }

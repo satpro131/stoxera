@@ -12,6 +12,8 @@ interface AppState {
   toggleWatchlist: (symbol: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -23,30 +25,32 @@ export const useAppStore = create<AppState>()(
       setTimeframe: (timeframe) => set({ timeframe }),
       watchlist: ['RELIANCE', 'NIFTY', 'HDFCBANK', 'TCS', 'ZOMATO'],
       addToWatchlist: (symbol) =>
-        set((state) => ({
-          watchlist: state.watchlist.includes(symbol)
-            ? state.watchlist
-            : [...state.watchlist, symbol.toUpperCase()],
-        })),
+          set((state) => ({
+            watchlist: state.watchlist.includes(symbol)
+                ? state.watchlist
+                : [...state.watchlist, symbol.toUpperCase()],
+          })),
       removeFromWatchlist: (symbol) =>
-        set((state) => ({
-          watchlist: state.watchlist.filter((s) => s !== symbol.toUpperCase()),
-        })),
+          set((state) => ({
+            watchlist: state.watchlist.filter((s) => s !== symbol.toUpperCase()),
+          })),
       toggleWatchlist: (symbol) =>
-        set((state) => {
-          const sym = symbol.toUpperCase();
-          const exists = state.watchlist.includes(sym);
-          return {
-            watchlist: exists
-              ? state.watchlist.filter((s) => s !== sym)
-              : [...state.watchlist, sym],
-          };
-        }),
+          set((state) => {
+            const sym = symbol.toUpperCase();
+            const exists = state.watchlist.includes(sym);
+            return {
+              watchlist: exists
+                  ? state.watchlist.filter((s) => s !== sym)
+                  : [...state.watchlist, sym],
+            };
+          }),
       activeTab: 'overview',
       setActiveTab: (tab) => set({ activeTab: tab }),
+      selectedModel: 'gemini-2.5-flash',
+      setSelectedModel: (model) => set({ selectedModel: model }),
     }),
     {
-      name: 'stoxera-storage', // local storage key
+      name: 'neural-alpha-storage', // local storage key
     }
   )
 );

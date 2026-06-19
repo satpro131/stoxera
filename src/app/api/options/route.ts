@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol')?.toUpperCase();
+    const instrumentKey = searchParams.get('instrument_key');
 
     if (!symbol) {
       return NextResponse.json({ success: false, error: 'Symbol parameter is required' }, { status: 400 });
@@ -31,12 +32,12 @@ export async function GET(request: Request) {
     if (token) {
       try {
         // 1. Fetch available expiries & select nearest
-        const expiries = await getUpstoxExpiries(symbol);
+        const expiries = await getUpstoxExpiries(symbol, instrumentKey || undefined);
         if (expiries.length > 0) {
           const nearestExpiry = expiries[0];
           
           // 2. Fetch Option Chain from Upstox
-          const upstoxChain = await getUpstoxOptionChain(symbol, nearestExpiry);
+          const upstoxChain = await getUpstoxOptionChain(symbol, nearestExpiry, instrumentKey || undefined);
           
           if (upstoxChain.length > 0) {
             // Get underlying spot price from response

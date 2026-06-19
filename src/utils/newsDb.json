@@ -1,0 +1,104 @@
+{
+  "GLOBAL": [
+    {
+      "id": "global-1",
+      "headline": "Global markets rebound: Dow climbs 200 pts as Fed signals interest rate cuts",
+      "source": "Moneycontrol",
+      "url": "https://www.moneycontrol.com/news/world-markets/global-markets-rebound-dow-climbs-200-pts-123.html",
+      "published_at": "2026-06-16T23:30:00.000Z",
+      "raw_text": "Wall Street trade ended higher on Monday as soft inflation data reinforced hopes of a near-term Federal Reserve interest rate cut, prompting a global equities rally.",
+      "sentiment": "Positive",
+      "summary": "Dow rises 200 pts on Fed rate cut hopes, triggering global rally."
+    },
+    {
+      "id": "global-2",
+      "headline": "Brent Crude slips to $81/barrel amid rising US production levels",
+      "source": "Economic Times",
+      "url": "https://economictimes.indiatimes.com/markets/commodities/brent-crude-slips-to-81-barrel-456.html",
+      "published_at": "2026-06-16T22:00:00.000Z",
+      "raw_text": "Crude oil prices softened, lowering fuel import costs for major consumers like India, boosting prospects for local logistics, auto, and aviation sectors.",
+      "sentiment": "Positive",
+      "summary": "Brent Crude slips to $81/bbl, benefiting oil importers like India."
+    }
+  ],
+  "RELIANCE": [
+    {
+      "id": "reliance-1",
+      "headline": "Reliance Retail steps up expansion, signs global cosmetic JV",
+      "source": "CNBC-TV18",
+      "url": "https://www.cnbctv18.com/retail/reliance-retail-steps-up-expansion-jv-12345.html",
+      "published_at": "2026-06-16T21:30:00.000Z",
+      "raw_text": "Reliance Retail expands premium lifestyle footprint with new global brand acquisitions, setting targets to double regional margins over next fiscal cycle.",
+      "sentiment": "Positive",
+      "summary": "Reliance Retail signs global cosmetic JV to drive premium lifestyle segment expansion."
+    },
+    {
+      "id": "reliance-2",
+      "headline": "Reliance Industries shuts down secondary refining unit for regular maintenance",
+      "source": "Livemint",
+      "url": "https://www.livemint.com/industry/energy/reliance-shuts-refining-unit-maintenance-789.html",
+      "published_at": "2026-06-16T19:00:00.000Z",
+      "raw_text": "The refining unit shutdown is anticipated to last 10 days, though overall export volumes are buffered by high inventory reserves.",
+      "sentiment": "Neutral",
+      "summary": "Reliance refining unit shut for 10 days for routine maintenance; backup inventory handles exports."
+    }
+  ],
+  "TCS": [
+    {
+      "id": "tcs-1",
+      "headline": "TCS wins massive $800M digital transformation contract with UK retail giant",
+      "source": "Bloomberg Quint",
+      "url": "https://www.bloombergquint.com/markets/tcs-wins-800m-digital-transformation-contract-456.html",
+      "published_at": "2026-06-16T20:30:00.000Z",
+      "raw_text": "Tata Consultancy Services secured a multi-year IT integration and platform migration contract, driving positive sector analyst sentiment.",
+      "sentiment": "Positive",
+      "summary": "TCS bags $800M contract with UK retailer, boosting IT sector sentiment."
+    }
+  ],
+  "HDFCBANK": [
+    {
+      "id": "hdfcbank-1",
+      "headline": "HDFC Bank records 18% credit growth YoY in Q1 preliminary figures",
+      "source": "Financial Express",
+      "url": "https://www.financialexpress.com/industry/banking/hdfc-bank-records-18-credit-growth-yoy-789.html",
+      "published_at": "2026-06-16T21:00:00.000Z",
+      "raw_text": "Deposit accretion picked up pace, narrowing the credit-to-deposit gap post-merger. Capital adequacy ratios remain highly robust.",
+      "sentiment": "Positive",
+      "summary": "HDFC Bank posts strong 18% YoY Q1 credit growth with robust deposits accretion."
+    },
+    {
+      "id": "hdfcbank-2",
+      "headline": "RBI imposes minor penalty on HDFC Bank over compliance disclosures",
+      "source": "Business Standard",
+      "url": "https://www.business-standard.com/banking/rbi-imposes-minor-penalty-hdfc-bank-102.html",
+      "published_at": "2026-06-16T18:00:00.000Z",
+      "raw_text": "A nominal administrative penalty of INR 1.5 Crores was levied, which management clarified has no material operational or financial impact.",
+      "sentiment": "Negative",
+      "summary": "RBI levies a minor penalty of INR 1.5 Crores on HDFC Bank over compliance disclosures."
+    }
+  ],
+  "ZOMATO": [
+    {
+      "id": "zomato-1",
+      "headline": "Zomato Blinkit gross order values double as quick-commerce adoption spikes",
+      "source": "Economic Times",
+      "url": "https://economictimes.indiatimes.com/tech/zomato-shares-hit-record-highs-blinkit-gov-doubles-567.html",
+      "published_at": "2026-06-16T22:30:00.000Z",
+      "raw_text": "Zomato shares hit record highs as profitability metrics improve in the quick commerce vertical, prompting broker upgrades.",
+      "sentiment": "Positive",
+      "summary": "Zomato Blinkit GOV doubles on rapid quick-commerce adoption, driving stock upgrades."
+    }
+  ],
+  "SUZLON": [
+    {
+      "id": "suzlon-1",
+      "headline": "Suzlon secures massive 300 MW wind energy project in Gujarat",
+      "source": "Moneycontrol",
+      "url": "https://www.moneycontrol.com/news/business/suzlon-secures-300-mw-wind-energy-project-gujarat-456.html",
+      "published_at": "2026-06-16T20:00:00.000Z",
+      "raw_text": "The order involves installing 95 wind turbine generators, with commissioning set for late next year, strengthening their order book.",
+      "sentiment": "Positive",
+      "summary": "Suzlon bags 300 MW wind power order in Gujarat, expanding wind pipeline."
+    }
+  ]
+}

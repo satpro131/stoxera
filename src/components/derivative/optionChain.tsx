@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Percent, TrendingUp, HelpCircle, Activity } from 'lucide-react';
+import { deriveSentimentLabel } from '@/utils/formulas';
 
 interface OptionChainProps {
   symbol: string;
@@ -27,15 +28,7 @@ export default function OptionChain({ symbol, optionsData }: OptionChainProps) {
     'Put OI': item.put.oi,
   }));
 
-  const getPcrSentiment = (val: number) => {
-    if (val > 1.3) return { text: 'Strongly Bullish (Heavy Put Writing)', color: 'text-emerald-500 bg-emerald-500/10' };
-    if (val > 0.9) return { text: 'Bullish (Put support building)', color: 'text-emerald-400 bg-emerald-400/5' };
-    if (val < 0.6) return { text: 'Strongly Bearish (Heavy Call Writing)', color: 'text-rose-500 bg-rose-500/10' };
-    if (val < 0.8) return { text: 'Bearish (Call resistance building)', color: 'text-rose-400 bg-rose-400/5' };
-    return { text: 'Neutral / Range-bound', color: 'text-zinc-400 bg-zinc-800' };
-  };
-
-  const sentiment = getPcrSentiment(pcr);
+  const sentiment = deriveSentimentLabel(pcr);
 
   return (
     <div className="space-y-8">

@@ -1,7 +1,7 @@
-# Stoxera 🚀
+# Neural Alpha 🚀
 > Next-Gen AI-Driven Equity & Derivatives (F&O) Advisory and Option Strategy Playbook Platform.
 
-Stoxera is a premium, real-time analytics and advisory platform designed for tracking Indian equities, index derivatives, and stock futures & options (F&O). It integrates live price feeds, open interest analytics, and technical indicators with multi-LLM syntheses to generate actionable buy/sell/hold/avoid trade setups and automated option strategy suggestions.
+Neural Alpha is a premium, real-time analytics and advisory platform designed for tracking Indian equities, index derivatives, and stock futures & options (F&O). It integrates live price feeds, open interest analytics, and technical indicators with multi-LLM syntheses to generate actionable buy/sell/hold/avoid trade setups and automated option strategy suggestions.
 
 ---
 

@@ -23,9 +23,28 @@ interface StrategyPlannerProps {
     chain: any[];
   } | null;
   aiRecommendation?: string;
+  aiOptionsStrategy?: {
+    no_trade_possible: boolean;
+    reasoning?: string;
+    strategy_name?: string;
+    setup_type?: string;
+    expiry_used?: string;
+    legs: Array<{
+      action: 'BUY' | 'SELL';
+      strike: number;
+      option_type: 'CE' | 'PE';
+      premium_reference: number;
+    }>;
+    max_profit_estimate?: string;
+    max_loss_estimate?: string;
+    breakeven_points?: string[];
+    estimated_win_probability?: number;
+    risk_factors?: string[];
+    rationale?: string;
+  } | null;
 }
 
-export default function StrategyPlanner({ symbol, spotPrice, optionsData, aiRecommendation }: StrategyPlannerProps) {
+export default function StrategyPlanner({ symbol, spotPrice, optionsData, aiRecommendation, aiOptionsStrategy }: StrategyPlannerProps) {
   const [legs, setLegs] = useState<PositionLeg[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyTemplate>('bull_call_spread');
   const [simulatedPrice, setSimulatedPrice] = useState<number>(Math.round(spotPrice));
@@ -92,6 +111,22 @@ export default function StrategyPlanner({ symbol, spotPrice, optionsData, aiReco
     }
   }, [aiRecommendation, spotPrice, chain]);
 
+  const recDetails = useMemo(() => {
+    if (aiOptionsStrategy && !aiOptionsStrategy.no_trade_possible) {
+      return {
+        strategy: 'custom' as StrategyTemplate,
+        name: aiOptionsStrategy.strategy_name || 'AI Recommended Strategy',
+        type: aiOptionsStrategy.setup_type || 'AI Suggested Setup',
+        pop: aiOptionsStrategy.estimated_win_probability ? `${aiOptionsStrategy.estimated_win_probability}%` : 'N/A',
+        rationale: aiOptionsStrategy.rationale || aiOptionsStrategy.reasoning || '',
+        risks: aiOptionsStrategy.risk_factors && aiOptionsStrategy.risk_factors.length > 0
+          ? aiOptionsStrategy.risk_factors
+          : ['Options trading involves significant risk.']
+      };
+    }
+    return recommendationDetails;
+  }, [aiOptionsStrategy, recommendationDetails]);
+
   // Set lot size based on symbol
   const lotSize = useMemo(() => {
     if (symbol === 'NIFTY') return 25;
@@ -107,6 +142,22 @@ export default function StrategyPlanner({ symbol, spotPrice, optionsData, aiReco
       setSimulatedPrice(Math.round(spotPrice));
     }
   }, [spotPrice]);
+
+  // Handle auto-population of AI recommended options legs
+  useEffect(() => {
+    if (aiOptionsStrategy && !aiOptionsStrategy.no_trade_possible && aiOptionsStrategy.legs && aiOptionsStrategy.legs.length > 0) {
+      const parsedLegs = aiOptionsStrategy.legs.map((leg, index) => ({
+        id: `ai-leg-${index}-${Date.now()}`,
+        strike: leg.strike,
+        type: leg.option_type,
+        action: leg.action,
+        premium: leg.premium_reference,
+        lots: 1
+      }));
+      setLegs(parsedLegs);
+      setSelectedStrategy('custom');
+    }
+  }, [aiOptionsStrategy]);
 
   // Auto-build strategy legs when option chain details change
   useEffect(() => {
@@ -440,21 +491,36 @@ export default function StrategyPlanner({ symbol, spotPrice, optionsData, aiReco
 
           <div>
             <h4 className="text-base font-extrabold text-white">
-              {recommendationDetails.name} <span className="text-[10px] text-zinc-500 font-semibold bg-zinc-900 border border-zinc-850 px-1.5 py-0.5 rounded ml-2 uppercase tracking-wide">{recommendationDetails.type}</span>
+              {recDetails.name} <span className="text-[10px] text-zinc-500 font-semibold bg-zinc-900 border border-zinc-850 px-1.5 py-0.5 rounded ml-2 uppercase tracking-wide">{recDetails.type}</span>
             </h4>
             <p className="text-xs text-zinc-400 leading-relaxed mt-1 font-medium">
-              {recommendationDetails.rationale}
+              {recDetails.rationale}
             </p>
           </div>
 
           <div className="flex items-center gap-4 text-xs">
             <div>
               <span className="text-zinc-500">Estimated Win Prob: </span>
-              <span className="font-bold text-emerald-400">{recommendationDetails.pop}</span>
+              <span className="font-bold text-emerald-400">{recDetails.pop}</span>
             </div>
             <div className="h-3 w-px bg-zinc-900" />
             <button
-              onClick={() => setSelectedStrategy(recommendationDetails.strategy)}
+              onClick={() => {
+                if (aiOptionsStrategy && !aiOptionsStrategy.no_trade_possible && aiOptionsStrategy.legs && aiOptionsStrategy.legs.length > 0) {
+                  const parsedLegs = aiOptionsStrategy.legs.map((leg, index) => ({
+                    id: `ai-leg-${index}-${Date.now()}`,
+                    strike: leg.strike,
+                    type: leg.option_type,
+                    action: leg.action,
+                    premium: leg.premium_reference,
+                    lots: 1
+                  }));
+                  setLegs(parsedLegs);
+                  setSelectedStrategy('custom');
+                } else {
+                  setSelectedStrategy(recDetails.strategy);
+                }
+              }}
               className="text-[10px] uppercase font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 group"
             >
               Configure this Strategy
@@ -471,7 +537,7 @@ export default function StrategyPlanner({ symbol, spotPrice, optionsData, aiReco
               Strategy Risk Factors
             </span>
             <ul className="space-y-1 text-[10px] text-zinc-500">
-              {recommendationDetails.risks.map((risk, index) => (
+              {recDetails.risks.map((risk, index) => (
                 <li key={index} className="flex items-start gap-1 leading-normal">
                   <span className="h-1 w-1 rounded-full bg-rose-500/70 mt-1 flex-shrink-0" />
                   <span>{risk}</span>

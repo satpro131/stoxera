@@ -91,6 +91,7 @@ export interface NewsItem {
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
   score: number; // -1.0 to 1.0
   category: 'Company' | 'Sector' | 'Macro' | 'Global';
+  url?: string;
 }
 
 export interface OHLCV {
@@ -376,7 +377,8 @@ export function getNews(symbol?: string): NewsItem[] {
       summary: 'Wall Street trade ended higher on Monday as soft inflation data reinforced hopes of a near-term Federal Reserve interest rate cut, prompting a global equities rally.',
       sentiment: 'Bullish',
       score: 0.75,
-      category: 'Global'
+      category: 'Global',
+      url: 'https://www.moneycontrol.com/news/world-markets/global-markets-rebound-dow-climbs-200-pts-123.html'
     },
     {
       id: 'news-2',
@@ -386,7 +388,8 @@ export function getNews(symbol?: string): NewsItem[] {
       summary: 'Crude oil prices softened, lowering fuel import costs for major consumers like India, boosting prospects for local logistics, auto, and aviation sectors.',
       sentiment: 'Bullish',
       score: 0.60,
-      category: 'Macro'
+      category: 'Macro',
+      url: 'https://economictimes.indiatimes.com/markets/commodities/brent-crude-slips-to-81-barrel-456.html'
     },
     {
       id: 'news-3',
@@ -396,7 +399,8 @@ export function getNews(symbol?: string): NewsItem[] {
       summary: 'Analysts upgrade guidance for largecap IT companies citing stronger outsourcing pipelines in Europe and resurgence of US discretionary BFSI tech spend.',
       sentiment: 'Bullish',
       score: 0.80,
-      category: 'Sector'
+      category: 'Sector',
+      url: 'https://www.reuters.com/technology/indian-it-sector-margins-bounce-back-cloud-deals-recovery-789.html'
     }
   ];
 
@@ -408,7 +412,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'Reliance Retail expands premium lifestyle footprint with new global brand acquisitions, setting targets to double regional margins over next fiscal cycle.',
         sentiment: 'Bullish',
         score: 0.85,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://www.cnbctv18.com/retail/reliance-retail-steps-up-expansion-jv-12345.html'
       },
       {
         source: 'Livemint',
@@ -416,7 +421,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'The refining unit shutdown is anticipated to last 10 days, though overall export volumes are buffered by high inventory reserves.',
         sentiment: 'Neutral',
         score: -0.05,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://www.livemint.com/industry/energy/reliance-shuts-refining-unit-maintenance-789.html'
       }
     ],
     TCS: [
@@ -426,7 +432,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'Tata Consultancy Services secured a multi-year IT integration and platform migration contract, driving positive sector analyst sentiment.',
         sentiment: 'Bullish',
         score: 0.90,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://www.bloombergquint.com/markets/tcs-wins-800m-digital-transformation-contract-456.html'
       }
     ],
     HDFCBANK: [
@@ -436,7 +443,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'Deposit accretion picked up pace, narrowing the credit-to-deposit gap post-merger. Capital adequacy ratios remain highly robust.',
         sentiment: 'Bullish',
         score: 0.70,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://www.financialexpress.com/industry/banking/hdfc-bank-records-18-credit-growth-yoy-789.html'
       },
       {
         source: 'Business Standard',
@@ -444,7 +452,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'A nominal administrative penalty of INR 1.5 Crores was levied, which management clarified has no material operational or financial impact.',
         sentiment: 'Bearish',
         score: -0.25,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://www.business-standard.com/banking/rbi-imposes-minor-penalty-hdfc-bank-102.html'
       }
     ],
     ZOMATO: [
@@ -454,7 +463,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'Zomato shares hit record highs as profitability metrics improve in the quick commerce vertical, prompting broker upgrades.',
         sentiment: 'Bullish',
         score: 0.95,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://economictimes.indiatimes.com/tech/zomato-shares-hit-record-highs-blinkit-gov-doubles-567.html'
       }
     ],
     SUZLON: [
@@ -464,7 +474,8 @@ export function getNews(symbol?: string): NewsItem[] {
         summary: 'The order involves installing 95 wind turbine generators, with commissioning set for late next year, strengthening their order book.',
         sentiment: 'Bullish',
         score: 0.88,
-        category: 'Company'
+        category: 'Company',
+        url: 'https://www.moneycontrol.com/news/business/suzlon-secures-300-mw-wind-energy-project-gujarat-456.html'
       }
     ]
   };

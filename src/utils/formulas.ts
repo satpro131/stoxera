@@ -181,3 +181,93 @@ export function calculateMaxPain(
 
   return { maxPainPrice, detailedPain };
 }
+
+export interface PivotLevels {
+  pivotPoint: number;
+  r1: number;
+  r2: number;
+  s1: number;
+  s2: number;
+}
+
+/**
+ * Calculates Pivot Points using Classic formula
+ * P = (High + Low + Close) / 3
+ * R1 = (2 * P) - Low
+ * S1 = (2 * P) - High
+ * R2 = P + (High - Low)
+ * S2 = P - (High - Low)
+ */
+export function computePivotLevels(
+  prevHigh: number,
+  prevLow: number,
+  prevClose: number
+): PivotLevels {
+  const pivotPoint = (prevHigh + prevLow + prevClose) / 3;
+  const r1 = 2 * pivotPoint - prevLow;
+  const s1 = 2 * pivotPoint - prevHigh;
+  const r2 = pivotPoint + (prevHigh - prevLow);
+  const s2 = pivotPoint - (prevHigh - prevLow);
+
+  return {
+    pivotPoint: Number(pivotPoint.toFixed(2)),
+    r1: Number(r1.toFixed(2)),
+    r2: Number(r2.toFixed(2)),
+    s1: Number(s1.toFixed(2)),
+    s2: Number(s2.toFixed(2))
+  };
+}
+
+/**
+ * Derives a rule-based trend status label from key technical indicators.
+ * Pure business logic with no external calls.
+ */
+export function deriveTrendStatus(
+  rsi: number,
+  macdHistogram: number,
+  smaShort: number,
+  smaMid: number,
+  currentPrice: number
+): 'Strong Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strong Bearish' {
+  let score = 0;
+
+  // RSI rules
+  if (rsi >= 70) score += 2;
+  else if (rsi >= 55) score += 1;
+  else if (rsi <= 30) score -= 2;
+  else if (rsi <= 45) score -= 1;
+
+  // MACD rules
+  if (macdHistogram > 0) score += 1;
+  else if (macdHistogram < 0) score -= 1;
+
+  // Moving Average alignments
+  if (currentPrice > smaShort) score += 1;
+  else if (currentPrice < smaShort) score -= 1;
+
+  if (smaShort > smaMid) score += 1;
+  else if (smaShort < smaMid) score -= 1;
+
+  // Dual confirmations
+  if (currentPrice > smaShort && smaShort > smaMid) score += 1;
+  if (currentPrice < smaShort && smaShort < smaMid) score -= 1;
+
+  if (score >= 4) return 'Strong Bullish';
+  if (score >= 1) return 'Bullish';
+  if (score <= -4) return 'Strong Bearish';
+  if (score <= -1) return 'Bearish';
+  return 'Neutral';
+}
+
+/**
+ * Derives PCR sentiment label based on Put-Call Ratio (PCR) values.
+ */
+export function deriveSentimentLabel(pcr: number): { text: string; color: string } {
+  if (pcr > 1.3) return { text: 'Strongly Bullish (Heavy Put Writing)', color: 'text-emerald-500 bg-emerald-500/10' };
+  if (pcr > 0.9) return { text: 'Bullish (Put support building)', color: 'text-emerald-400 bg-emerald-400/5' };
+  if (pcr < 0.6) return { text: 'Strongly Bearish (Heavy Call Writing)', color: 'text-rose-500 bg-rose-500/10' };
+  if (pcr < 0.8) return { text: 'Bearish (Call resistance building)', color: 'text-rose-400 bg-rose-400/5' };
+  return { text: 'Neutral / Range-bound', color: 'text-zinc-400 bg-zinc-800' };
+}
+
+

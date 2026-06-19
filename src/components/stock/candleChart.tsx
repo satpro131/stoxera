@@ -113,7 +113,7 @@ export default function CandleChart({ data }: CandleChartProps) {
 
   // Update chart data when data prop changes
   useEffect(() => {
-    if (candlestickSeriesRef.current && volumeSeriesRef.current && data.length > 0) {
+    if (candlestickSeriesRef.current && volumeSeriesRef.current && data && data.length > 0) {
       // Map candlestick data
       const candleData = data.map(item => ({
         time: item.time,

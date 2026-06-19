@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/header';
 import { useAppStore } from '@/store/useAppStore';
 import { useQuery } from '@tanstack/react-query';
+import { useInstrumentsSync } from '@/hooks/useInstrumentsSync';
 import {
   TrendingUp,
   TrendingDown,
@@ -21,6 +22,7 @@ import {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { isSyncing, progress } = useInstrumentsSync();
   const { setSelectedSymbol, watchlist, toggleWatchlist } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'F&O' | 'CASH' | 'LONG_BUILDUP' | 'SHORT_BUILDUP'>('ALL');
@@ -131,6 +133,32 @@ export default function Dashboard() {
         return 'bg-zinc-800/50 text-zinc-400 border-transparent';
     }
   };
+
+  if (isSyncing) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-zinc-100 p-6">
+        <div className="max-w-md w-full glass-panel p-8 rounded-2xl border border-zinc-900 text-center space-y-6">
+          <div className="relative flex justify-center">
+            <div className="h-16 w-16 rounded-full border-t-2 border-cyan-500 animate-spin" />
+            <Sparkles className="h-6 w-6 text-cyan-400 absolute top-5 animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+              Initializing Database
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Setting up local instruments cache for lightning-fast lookups.
+            </p>
+          </div>
+          <div className="bg-zinc-900/60 p-3 rounded-lg border border-zinc-800/40">
+            <span className="text-xs font-mono text-cyan-400 animate-pulse">
+              {progress}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950">

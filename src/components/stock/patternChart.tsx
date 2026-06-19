@@ -105,7 +105,7 @@ export default function PatternChart({ data, patternLines }: PatternChartProps) 
 
   // Update data and trendlines
   useEffect(() => {
-    if (candlestickSeriesRef.current && data.length > 0) {
+    if (candlestickSeriesRef.current && data && data.length > 0) {
       // Set Candlestick data
       const candleData = data.map(item => ({
         time: item.time,

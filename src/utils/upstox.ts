@@ -1,4 +1,6 @@
-// Map Stoxera symbols to Upstox Instrument Keys for requests
+// Map Neural Alpha symbols to Upstox Instrument Keys for requests
+import { getInstrumentKey } from './db';
+
 export const UPSTOX_INSTRUMENT_MAP: Record<string, string> = {
   NIFTY: 'NSE_INDEX|Nifty 50',
   BANKNIFTY: 'NSE_INDEX|Nifty Bank',
@@ -24,7 +26,7 @@ export const UPSTOX_INSTRUMENT_MAP: Record<string, string> = {
   TRENT: 'NSE_EQ|INE848E01016'
 };
 
-// Map Upstox response JSON keys to Stoxera symbols
+// Map Upstox response JSON keys to Neural Alpha symbols
 export const UPSTOX_RESPONSE_MAP: Record<string, string> = {
   'NSE_INDEX:Nifty 50': 'NIFTY',
   'NSE_INDEX:Nifty Bank': 'BANKNIFTY',
@@ -66,14 +68,14 @@ function getHeaders() {
 /**
  * Fetch full market quotes for a batch of instruments
  */
-export async function getUpstoxQuotes(symbols: string[]): Promise<Record<string, any>> {
-  const instrumentKeys = symbols
-    .map(sym => UPSTOX_INSTRUMENT_MAP[sym])
-    .filter(Boolean);
+export async function getUpstoxQuotes(symbols: string[], instrumentKeys?: string[]): Promise<Record<string, any>> {
+  const keys = (instrumentKeys && instrumentKeys.length > 0)
+    ? instrumentKeys
+    : symbols.map(sym => getInstrumentKey(sym) || UPSTOX_INSTRUMENT_MAP[sym]).filter(Boolean);
 
-  if (instrumentKeys.length === 0) return {};
+  if (keys.length === 0) return {};
 
-  const url = `${BASE_URL}/market-quote/quotes?symbol=${encodeURIComponent(instrumentKeys.join(','))}`;
+  const url = `${BASE_URL}/market-quote/quotes?symbol=${encodeURIComponent(keys.join(','))}`;
   const response = await fetch(url, { headers: getHeaders() });
   
   if (!response.ok) {
@@ -91,8 +93,8 @@ export async function getUpstoxQuotes(symbols: string[]): Promise<Record<string,
 /**
  * Fetch expiry dates for option contracts of an underlying instrument
  */
-export async function getUpstoxExpiries(symbol: string): Promise<string[]> {
-  const key = UPSTOX_INSTRUMENT_MAP[symbol];
+export async function getUpstoxExpiries(symbol: string, instrumentKey?: string): Promise<string[]> {
+  const key = instrumentKey || getInstrumentKey(symbol) || UPSTOX_INSTRUMENT_MAP[symbol];
   if (!key) throw new Error(`Invalid symbol: ${symbol}`);
 
   const url = `${BASE_URL}/option/contract?instrument_key=${encodeURIComponent(key)}`;
@@ -118,8 +120,8 @@ export async function getUpstoxExpiries(symbol: string): Promise<string[]> {
 /**
  * Fetch Option Chain for an instrument and expiry date
  */
-export async function getUpstoxOptionChain(symbol: string, expiryDate: string): Promise<any[]> {
-  const key = UPSTOX_INSTRUMENT_MAP[symbol];
+export async function getUpstoxOptionChain(symbol: string, expiryDate: string, instrumentKey?: string): Promise<any[]> {
+  const key = instrumentKey || getInstrumentKey(symbol) || UPSTOX_INSTRUMENT_MAP[symbol];
   if (!key) throw new Error(`Invalid symbol: ${symbol}`);
 
   const url = `${BASE_URL}/option/chain?instrument_key=${encodeURIComponent(key)}&expiry_date=${expiryDate}`;
@@ -140,8 +142,8 @@ export async function getUpstoxOptionChain(symbol: string, expiryDate: string): 
 /**
  * Fetch Candle charts (OHLCV) for a timeframe
  */
-export async function getUpstoxCandles(symbol: string, timeframe: string): Promise<any[]> {
-  const key = UPSTOX_INSTRUMENT_MAP[symbol];
+export async function getUpstoxCandles(symbol: string, timeframe: string, instrumentKey?: string): Promise<any[]> {
+  const key = instrumentKey || getInstrumentKey(symbol) || UPSTOX_INSTRUMENT_MAP[symbol];
   if (!key) throw new Error(`Invalid symbol: ${symbol}`);
 
   // Map timeframe to Upstox candle interval & dynamic date range
@@ -171,7 +173,11 @@ export async function getUpstoxCandles(symbol: string, timeframe: string): Promi
       interval = 'day';
   }
 
-  const toDate = new Date().toISOString().split('T')[0];
+  // Calculate dynamic dates (use tomorrow's date to avoid timezone mismatches and get latest day's data)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const toDate = tomorrow.toISOString().split('T')[0];
+  
   const fromDateObj = new Date();
   fromDateObj.setDate(fromDateObj.getDate() - daysBack);
   const fromDate = fromDateObj.toISOString().split('T')[0];

@@ -50,14 +50,35 @@ export default function StrategyBuilder() {
   const stocks = stocksRes?.success ? stocksRes.data : [];
   const foStocks = stocks.filter((s: any) => s.category === 'F&O');
 
+  const [instrumentKey, setInstrumentKey] = useState<string | null>(null);
+  const [resolvingKey, setResolvingKey] = useState(true);
+
+  useEffect(() => {
+    async function fetchKey() {
+      try {
+        const { getInstrumentKeyClient } = await import('@/utils/dbClient');
+        const key = await getInstrumentKeyClient(selectedSymbol);
+        setInstrumentKey(key);
+      } catch (err) {
+        console.error('Failed to resolve instrument key:', err);
+      } finally {
+        setResolvingKey(false);
+      }
+    }
+    if (selectedSymbol) {
+      fetchKey();
+    }
+  }, [selectedSymbol]);
+
   // Fetch option chain for selected symbol
   const { data: optionsRes, isLoading } = useQuery({
-    queryKey: ['options-chain', selectedSymbol],
+    queryKey: ['options-chain', selectedSymbol, instrumentKey],
     queryFn: async () => {
-      const res = await fetch(`/api/options?symbol=${selectedSymbol}`);
+      const keyParam = instrumentKey ? `&instrument_key=${encodeURIComponent(instrumentKey)}` : '';
+      const res = await fetch(`/api/options?symbol=${selectedSymbol}${keyParam}`);
       return res.json();
     },
-    enabled: !!selectedSymbol
+    enabled: !!selectedSymbol && !resolvingKey
   });
 
   const optionData = optionsRes?.success ? optionsRes.data : null;
