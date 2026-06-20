@@ -94,6 +94,17 @@ export default function Header() {
               <Compass className="h-4 w-4" />
               Dashboard
             </Link>
+            <Link
+              href="/demo-trading"
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                pathname === '/demo-trading'
+                  ? 'bg-cyan-500/10 text-cyan-400'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/50'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Demo Trading
+            </Link>
           </nav>
         </div>
 

@@ -9,6 +9,7 @@ import StrategyPlanner from '@/components/stock/strategyPlanner';
 import PatternChart from '@/components/stock/patternChart';
 import { useAppStore } from '@/store/useAppStore';
 import { useQuery } from '@tanstack/react-query';
+import { addPositionalTrade, addFnoTrade } from '@/utils/demoDb';
 import {
   TrendingUp,
   TrendingDown,
@@ -22,7 +23,8 @@ import {
   AlertTriangle,
   RefreshCw,
   Cpu,
-  Bookmark
+  Bookmark,
+  X
 } from 'lucide-react';
 
 export default function StockDetail() {
@@ -42,6 +44,161 @@ export default function StockDetail() {
   const [expandRationale, setExpandRationale] = useState<boolean>(false);
   const [showAllRisks, setShowAllRisks] = useState<boolean>(false);
   const [lastSynthesizedAt, setLastSynthesizedAt] = useState<Date | null>(null);
+
+  // Demo Trade placement modals state
+  const [showPosModal, setShowPosModal] = useState(false);
+  const [posModalData, setPosModalData] = useState<any>(null);
+  const [posEntryPrice, setPosEntryPrice] = useState<number>(0);
+  const [posQuantity, setPosQuantity] = useState<number>(100);
+
+  const [showFnoModal, setShowFnoModal] = useState(false);
+  const [fnoModalData, setFnoModalData] = useState<any>(null);
+  const [fnoLegLots, setFnoLegLots] = useState<Record<number, number>>({});
+  const [fnoLegPremiums, setFnoLegPremiums] = useState<Record<number, number>>({});
+  const [refreshingFno, setRefreshingFno] = useState(false);
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const handleAddPositionalDemoTrade = (suggested: any) => {
+    const rawEntry = String(suggested.entry_point || stock?.price || 0).replace(/[₹,]/g, '');
+    const entryVal = parseFloat(rawEntry) || stock?.price || 0;
+    const targetVal = suggested.target_price ? parseFloat(String(suggested.target_price).replace(/[₹,]/g, '')) : null;
+    const stopLossVal = suggested.stop_loss ? parseFloat(String(suggested.stop_loss).replace(/[₹,]/g, '')) : null;
+
+    setPosModalData({
+      symbol,
+      instrument_key: stock?.instrument_key || '',
+      direction: (suggested.direction || 'LONG').toUpperCase(),
+      target_price: targetVal,
+      stop_loss: stopLossVal,
+      expected_timeline: suggested.expected_timeline || null,
+      ai_rationale: suggested.rationale || null
+    });
+    setPosEntryPrice(Number(entryVal.toFixed(2)));
+    setPosQuantity(100);
+    setShowPosModal(true);
+  };
+
+  const handleConfirmPosDemoTrade = async () => {
+    try {
+      await addPositionalTrade({
+        symbol: posModalData.symbol,
+        instrument_key: posModalData.instrument_key || '',
+        source: 'AI',
+        direction: posModalData.direction,
+        entry_price: posEntryPrice,
+        quantity: posQuantity,
+        target_price: posModalData.target_price,
+        stop_loss: posModalData.stop_loss,
+        expected_timeline: posModalData.expected_timeline,
+        ai_rationale: posModalData.ai_rationale
+      });
+      showToast('Positional trade successfully added to Demo Trading!');
+      setShowPosModal(false);
+    } catch (err: any) {
+      showToast('Failed to place trade: ' + err.message, 'error');
+    }
+  };
+
+  const handleAddFnoDemoTrade = async (suggested: any) => {
+    const initialLots: Record<number, number> = {};
+    const initialPremiums: Record<number, number> = {};
+    (suggested.legs || []).forEach((leg: any, idx: number) => {
+      initialLots[idx] = leg.lots || 1;
+      initialPremiums[idx] = leg.premium_reference;
+    });
+
+    setFnoModalData({
+      symbol,
+      instrument_key: stock?.instrument_key || '',
+      strategy_name: suggested.strategy_name || 'Custom Strategy',
+      expiry_date: suggested.expiry_used || '',
+      legs: suggested.legs || [],
+      max_profit_estimate: suggested.max_profit_estimate || null,
+      max_loss_estimate: suggested.max_loss_estimate || null,
+      breakeven_points: suggested.breakeven_points || null,
+      ai_rationale: suggested.rationale || null
+    });
+    setFnoLegLots(initialLots);
+    setFnoLegPremiums(initialPremiums);
+    setShowFnoModal(true);
+
+    setRefreshingFno(true);
+    try {
+      const res = await fetch(`/api/options?symbol=${symbol}`);
+      const data = await res.json();
+      if (data?.success && data?.data?.chain) {
+        const liveChain = data.data.chain;
+        const updatedPremiums: Record<number, number> = {};
+        (suggested.legs || []).forEach((leg: any, idx: number) => {
+          const matched = liveChain.find((c: any) => c.strike === leg.strike);
+          if (matched) {
+            const ltp = leg.option_type === 'CE' ? matched.call?.ltp : matched.put?.ltp;
+            if (ltp !== undefined && ltp > 0) {
+              updatedPremiums[idx] = ltp;
+            } else {
+              updatedPremiums[idx] = leg.premium_reference;
+            }
+          } else {
+            updatedPremiums[idx] = leg.premium_reference;
+          }
+        });
+        setFnoLegPremiums(updatedPremiums);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh option chain premiums:', e);
+    } finally {
+      setRefreshingFno(false);
+    }
+  };
+
+  const handleConfirmFnoDemoTrade = async () => {
+    try {
+      let lotSize = 500;
+      if (symbol === 'NIFTY') lotSize = 25;
+      else if (symbol === 'BANKNIFTY') lotSize = 15;
+      else if (symbol === 'RELIANCE') lotSize = 250;
+      else if (symbol === 'TCS') lotSize = 175;
+
+      const finalLegs = fnoModalData.legs.map((leg: any, idx: number) => ({
+        action: leg.action,
+        strike: leg.strike,
+        option_type: leg.option_type,
+        entry_premium: fnoLegPremiums[idx] || leg.premium_reference,
+        lots: fnoLegLots[idx] || 1,
+        lot_size: lotSize
+      }));
+
+      await addFnoTrade({
+        symbol: fnoModalData.symbol,
+        instrument_key: fnoModalData.instrument_key || '',
+        source: 'AI',
+        strategy_name: fnoModalData.strategy_name,
+        expiry_date: fnoModalData.expiry_date,
+        legs: finalLegs,
+        max_profit_estimate: fnoModalData.max_profit_estimate,
+        max_loss_estimate: fnoModalData.max_loss_estimate,
+        breakeven_points: fnoModalData.breakeven_points,
+        ai_rationale: fnoModalData.ai_rationale
+      });
+
+      showToast('F&O strategy successfully added to Demo Trading!');
+      setShowFnoModal(false);
+    } catch (err: any) {
+      showToast('Failed to place trade: ' + err.message, 'error');
+    }
+  };
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -1167,6 +1324,12 @@ export default function StockDetail() {
                                     <span className="text-[9px] text-cyan-400 font-black uppercase tracking-wider block mb-0.5">Strategy Rationale</span>
                                     {aiReport.tradeSetup?.options_strategy?.rationale}
                                   </div>
+                                  <button
+                                    onClick={() => handleAddFnoDemoTrade(aiReport.tradeSetup.options_strategy)}
+                                    className="w-full mt-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-[10px] rounded-lg uppercase transition-all select-none active:scale-98"
+                                  >
+                                    Add Options to Demo Trade
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -1236,6 +1399,12 @@ export default function StockDetail() {
                                     <span className="text-[9px] text-cyan-400 font-black uppercase tracking-wider block mb-0.5">Trade Rationale</span>
                                     {aiReport.tradeSetup?.positional_trade?.rationale}
                                   </div>
+                                  <button
+                                    onClick={() => handleAddPositionalDemoTrade(aiReport.tradeSetup.positional_trade)}
+                                    className="w-full mt-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-[10px] rounded-lg uppercase transition-all select-none active:scale-98"
+                                  >
+                                    Add Position to Demo Trade
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -1314,6 +1483,12 @@ export default function StockDetail() {
                                   <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider block mb-1">Trade Rationale</span>
                                   {aiReport.tradeSetup?.rationale}
                                 </div>
+                                <button
+                                  onClick={() => handleAddPositionalDemoTrade(aiReport.tradeSetup)}
+                                  className="w-full mt-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-[10px] rounded-lg uppercase transition-all select-none active:scale-98"
+                                >
+                                  Add to Demo Trade
+                                </button>
                               </div>
                             </div>
                           )}
@@ -1510,6 +1685,197 @@ export default function StockDetail() {
           )}
         </div>
       </main>
+
+      {/* Modal Dialogues for placing trade */}
+      {showPosModal && posModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl relative">
+            <h3 className="text-sm font-extrabold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Cpu className="h-4.5 w-4.5 text-cyan-400" />
+              Confirm Demo Trade Placement
+            </h3>
+            <p className="text-[10px] text-zinc-500 mb-4 uppercase">AI Suggested Positional Setup</p>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3 font-mono">
+                <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-855">
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Symbol</span>
+                  <span className="font-bold text-zinc-200">{posModalData.symbol}</span>
+                </div>
+                <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-855">
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Direction</span>
+                  <span className={`font-bold uppercase ${posModalData.direction === 'LONG' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {posModalData.direction}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Entry Price (₹)</label>
+                <input
+                  type="number"
+                  value={posEntryPrice}
+                  onChange={(e) => setPosEntryPrice(Number(e.target.value))}
+                  className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 rounded-lg p-2 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Quantity</label>
+                <input
+                  type="number"
+                  value={posQuantity}
+                  onChange={(e) => setPosQuantity(Number(e.target.value))}
+                  className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 rounded-lg p-2 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 font-mono bg-zinc-900/30 p-3 rounded-lg border border-zinc-900">
+                <div>
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Target Price</span>
+                  <span className="font-bold text-emerald-400">₹{posModalData.target_price || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Stop Loss</span>
+                  <span className="font-bold text-rose-400">₹{posModalData.stop_loss || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowPosModal(false)}
+                className="flex-1 py-2 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 font-bold text-xs uppercase rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPosDemoTrade}
+                className="flex-1 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs uppercase rounded-xl transition-all shadow-md shadow-cyan-500/10"
+              >
+                Confirm Trade
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFnoModal && fnoModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-fadeIn">
+          <div className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl relative my-8">
+            <h3 className="text-sm font-extrabold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Layers className="h-4.5 w-4.5 text-cyan-400" />
+              Confirm Option Strategy Demo Trade
+            </h3>
+            <p className="text-[10px] text-zinc-500 mb-4 uppercase">AI Suggested F&O Strategy Playbook</p>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-3 gap-3 font-mono">
+                <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-855">
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Symbol</span>
+                  <span className="font-bold text-zinc-200">{fnoModalData.symbol}</span>
+                </div>
+                <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-855">
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Strategy</span>
+                  <span className="font-bold text-zinc-200">{fnoModalData.strategy_name}</span>
+                </div>
+                <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-855">
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Expiry</span>
+                  <span className="font-bold text-zinc-200">{fnoModalData.expiry_date}</span>
+                </div>
+              </div>
+
+              {/* Legs configuration details */}
+              <div className="border border-zinc-900 rounded-xl overflow-hidden">
+                <div className="bg-zinc-900/50 px-3 py-1.5 border-b border-zinc-900 text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  Option Legs (Edit Lots)
+                </div>
+                <div className="divide-y divide-zinc-900 max-h-56 overflow-y-auto">
+                  {fnoModalData.legs.map((leg: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-zinc-950/20 flex items-center justify-between gap-4 font-mono">
+                      <div>
+                        <span className={`font-bold mr-2 ${leg.action === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {leg.action}
+                        </span>
+                        <span className="text-zinc-200 font-bold">{leg.strike} {leg.option_type}</span>
+                        <span className="text-zinc-500 ml-2 block text-[9px] font-sans uppercase">
+                          Ref Premium: ₹{leg.premium_reference}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col text-right">
+                          <span className="text-[9px] text-zinc-500 font-sans uppercase">Fill Premium (LTP)</span>
+                          <span className="font-bold text-zinc-300">
+                            ₹{refreshingFno ? '...' : (fnoLegPremiums[idx] || leg.premium_reference)}
+                          </span>
+                        </div>
+                        <div className="w-16">
+                          <span className="text-[8px] text-zinc-500 font-sans uppercase block mb-0.5">Lots</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={fnoLegLots[idx] || 1}
+                            onChange={(e) => setFnoLegLots({ ...fnoLegLots, [idx]: Math.max(1, parseInt(e.target.value) || 1) })}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-center font-bold text-zinc-300 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {refreshingFno && (
+                <div className="text-[10px] text-cyan-400 flex items-center gap-1 font-semibold uppercase animate-pulse">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  Refreshing option chain premiums to live fill prices...
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 font-mono bg-zinc-900/30 p-3 rounded-lg border border-zinc-900">
+                <div>
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Max Profit Estimate</span>
+                  <span className="font-bold text-emerald-400">{fnoModalData.max_profit_estimate || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 block font-sans uppercase">Max Loss Estimate</span>
+                  <span className="font-bold text-rose-400">{fnoModalData.max_loss_estimate || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowFnoModal(false)}
+                className="flex-1 py-2 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 font-bold text-xs uppercase rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmFnoDemoTrade}
+                disabled={refreshingFno}
+                className="flex-1 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs uppercase rounded-xl transition-all shadow-md shadow-cyan-500/10 disabled:opacity-50"
+              >
+                Confirm Strategy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-slide-in">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md ${
+            toast.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+              : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+          }`}>
+            <span className="text-xs font-bold tracking-wide">{toast.message}</span>
+            <button onClick={() => setToast(null)} className="hover:opacity-85 cursor-pointer">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -86,3 +86,19 @@ body {
 .flash-down {
   animation: flash-red 1s ease-out;
 }
+
+/* Toast Animations */
+@keyframes slide-in-up {
+  from {
+    transform: translateY(1rem) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

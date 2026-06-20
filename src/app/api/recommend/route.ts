@@ -388,10 +388,11 @@ Max Pain Strike: ${context.options?.maxPain || 'N/A'}
 Total Call Open Interest: ${context.options?.totalCallOI || 0}
 Total Put Open Interest: ${context.options?.totalPutOI || 0}
 
-Explicit Instructions:
-1. Only suggest a strategy if the available option chain data supports a definable risk-reward setup with strikes that actually have meaningful OI/liquidity (avoid strikes with near-zero OI or volume — these are not tradeable). If the setup is unclear, conflicting, or no strikes have adequate liquidity to construct a sensible trade, return no_trade_possible: true and explain why in reasoning — do not force a strategy.
-2. Consider both a near-term options strategy (using the option chain/expiry data) AND a separate positional (cash market) trade suggestion using the underlying stock itself, independent of expiry. These should be returned as two separate fields and evaluated independently — it's possible one is viable and the other is not.
-3. Select strikes only from the provided option chain data — do not invent strikes or premiums. Reference actual LTP values provided for each leg.
+Explicit Instructions for Positional Cash Trade:
+1. The target price MUST represent a gain of at least 6% from the entry price (and preferably 8%+). NEVER suggest a low-yield target (like 2% or 3%) for a positional trade.
+2. The Risk-to-Reward ratio MUST be at least 1:1.5. That is, the target profit percentage must be at least 1.5 times the stop-loss percentage. If the technical support/resistance levels do not allow for a 1:1.5 Risk-to-Reward ratio with at least 6% gain, you must set no_trade_possible: true.
+3. Align the holding period (expected_timeline) with the target size: do not suggest long timelines like "3-6 Months" for tiny targets like 3-5%. For a 3-6 Months timeline, the target should represent at least a 15%-20% gain. For shorter targets (6%-10%), use "2-4 Weeks".
+4. Only suggest a strategy if the available option chain data supports a definable risk-reward setup with strikes that actually have meaningful OI/liquidity. If the setup is unclear or no strikes have adequate liquidity, return no_trade_possible: true for options_strategy.
 `;
               tradeSetup = await callGemini(model, foPrompt, foStrategySchema, geminiKey);
 
@@ -423,17 +424,19 @@ ${JSON.stringify(synthesisResult, null, 2)}
 [TECHNICAL SIGNALS]
 Daily RSI: ${context.technicals.rsi}
 Trend Bias: ${context.technicals.trend}
-SMA 20: ₹${context.technicals.sma20}
-SMA 50: ₹${context.technicals.sma50}
+Daily SMA 20: ₹${context.technicals.sma20}
+Daily SMA 50: ₹${context.technicals.sma50}
 Daily SMA 200: ₹${context.technicals.sma200}
 Support levels: ${context.technicals.support.join(', ')}
 Resistance levels: ${context.technicals.resistance.join(', ')}
 MACD Line: ${context.technicals.macd.macdLine}, Signal Line: ${context.technicals.macd.signalLine}, Histogram: ${context.technicals.macd.histogram}
 
 Explicit Instructions:
-1. Entry point should reference an actual technical level (support, pivot, or moving average) already provided — do not pick an arbitrary number disconnected from the given levels.
-2. If the recommendation from synthesis is Hold or the technical/fundamental signals are too conflicting to define a clear entry/exit, return no_trade_possible: true with reasoning, rather than forcing an entry.
-3. Tie the expected timeline to the dominant factor: if the call is primarily technically driven, timeline should be short (days to a few weeks). If primarily fundamentally driven, timeline should be longer (months) to allow the thesis to play out.
+1. The target price MUST represent a gain of at least 6% from the entry price (and preferably 8%+). NEVER suggest a low-yield target (like 2% or 3%) for a positional trade.
+2. The Risk-to-Reward ratio MUST be at least 1:1.5. That is, the target profit percentage must be at least 1.5 times the stop-loss percentage. If the technical support/resistance levels do not allow for a 1:1.5 Risk-to-Reward ratio with at least 6% gain, you must set no_trade_possible: true.
+3. Align the holding period (expected_timeline) with the target size: do not suggest long timelines like "3-6 Months" for tiny targets like 3-5%. For a 3-6 Months timeline, the target should represent at least a 15%-20% gain. For shorter targets (6%-10%), use "2-4 Weeks".
+4. Entry point should reference an actual technical level (support, pivot, or moving average) already provided.
+5. If the recommendation from synthesis is Hold or the technical/fundamental signals are too conflicting, return no_trade_possible: true.
 `;
               tradeSetup = await callGemini(model, nonFoPrompt, nonFoStrategySchema, geminiKey);
             }
@@ -532,19 +535,51 @@ Explicit Instructions:
     let stopLoss = 0;
 
     if (direction === 'Long') {
-      target = context.technicals.resistance[0] > context.price 
-        ? context.technicals.resistance[0] 
-        : Math.round(context.price * 1.07 * 10) / 10;
-      stopLoss = context.technicals.support[0] < context.price 
-        ? context.technicals.support[0] 
-        : Math.round(context.price * 0.965 * 10) / 10;
+      // Default to 8% target, 4% stop loss (1:2 risk-reward)
+      target = Math.round(context.price * 1.08 * 10) / 10;
+      stopLoss = Math.round(context.price * 0.96 * 10) / 10;
+
+      // Adjust target using resistance if it offers at least a 7% reward
+      const candidateResistance = context.technicals.resistance.find(r => r >= context.price * 1.07);
+      if (candidateResistance) {
+        target = candidateResistance;
+      }
+      
+      // Adjust stop loss based on support, but ensure risk-reward is at least 1:1.5
+      const candidateSupport = context.technicals.support.find(s => s <= context.price * 0.96);
+      if (candidateSupport) {
+        const potentialRisk = context.price - candidateSupport;
+        const potentialReward = target - context.price;
+        if (potentialReward >= potentialRisk * 1.5) {
+          stopLoss = candidateSupport;
+        } else {
+          // If support is too far away, place stop loss tighter to maintain at least 1:1.5 risk-to-reward
+          stopLoss = Math.round((context.price - (potentialReward / 1.5)) * 10) / 10;
+        }
+      }
     } else {
-      target = context.technicals.support[0] < context.price 
-        ? context.technicals.support[0] 
-        : Math.round(context.price * 0.93 * 10) / 10;
-      stopLoss = context.technicals.resistance[0] > context.price 
-        ? context.technicals.resistance[0] 
-        : Math.round(context.price * 1.035 * 10) / 10;
+      // Default to 8% profit target, 4% stop loss (1:2 risk-reward)
+      target = Math.round(context.price * 0.92 * 10) / 10;
+      stopLoss = Math.round(context.price * 1.04 * 10) / 10;
+
+      // Adjust target using support if it offers at least a 7% reward
+      const candidateSupport = context.technicals.support.find(s => s <= context.price * 0.93);
+      if (candidateSupport) {
+        target = candidateSupport;
+      }
+
+      // Adjust stop loss based on resistance, but ensure risk-reward is at least 1:1.5
+      const candidateResistance = context.technicals.resistance.find(r => r >= context.price * 1.04);
+      if (candidateResistance) {
+        const potentialRisk = candidateResistance - context.price;
+        const potentialReward = context.price - target;
+        if (potentialReward >= potentialRisk * 1.5) {
+          stopLoss = candidateResistance;
+        } else {
+          // If resistance is too far away, place stop loss tighter to maintain at least 1:1.5 risk-to-reward
+          stopLoss = Math.round((context.price + (potentialReward / 1.5)) * 10) / 10;
+        }
+      }
     }
 
     const expectedProfitPercent = direction === 'Long'
@@ -559,7 +594,8 @@ Explicit Instructions:
     const reward = Math.abs(target - entry);
     const risk_reward_ratio = risk > 0 ? `1:${(reward / risk).toFixed(1)}` : '1:2.0';
 
-    const expectedTimeline = localRec.holdingPeriod || '2-4 Weeks';
+    // Set timeline based on target size: >=15% target gets "3-6 Months", <15% gets "2-4 Weeks"
+    const expectedTimeline = reward / entry >= 0.15 ? '3-6 Months' : '2-4 Weeks';
 
     let rationale = '';
     if (localRec.recommendation === 'Hold') {
